@@ -6,6 +6,7 @@ Warning : This script only works with ***Python3***
 
 ## Simple usage
 
+	>>> pip install -r requirements.txt
 	>>> python main.py --domain http://blog.lesite.us --output sitemap.xml
 
 ## Advanced usage

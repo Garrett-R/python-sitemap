@@ -1,9 +1,12 @@
 import asyncio
 import concurrent.futures
 import base64
+
+from tldextract import tldextract
+
 import config
 import logging
-from urllib.parse import urljoin, urlunparse, urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import re
 from urllib.parse import urlparse
@@ -54,6 +57,7 @@ class Crawler:
 
 	output_file = None
 
+	target_subdomain = ""
 	target_domain = ""
 	scheme		  = ""
 
@@ -90,7 +94,9 @@ class Crawler:
 
 		try:
 			url_parsed = urlparse(domain)
-			self.target_domain = url_parsed.netloc
+			tld_result = tldextract.extract(url_parsed.netloc)
+			self.target_subdomain = tld_result.subdomain
+			self.target_domain = tld_result.domain
 			self.scheme = url_parsed.scheme
 		except:
 			logging.error("Invalide domain")
@@ -239,7 +245,8 @@ class Crawler:
 
 				# Ignore other domain images
 				image_link_parsed = urlparse(image_link)
-				if image_link_parsed.netloc != self.target_domain:
+				tld_result = tldextract.extract(image_link_parsed.netloc)
+				if tld_result.domain != self.target_domain:
 					continue
 
 
@@ -285,6 +292,7 @@ class Crawler:
 			parsed_link = urlparse(link)
 			domain_link = parsed_link.netloc
 			target_extension = os.path.splitext(parsed_link.path)[1][1:]
+			tld_result = tldextract.extract(domain_link)
 
 			if link in self.crawled_or_crawling:
 				continue
@@ -292,9 +300,9 @@ class Crawler:
 				continue
 			if link in self.excluded:
 				continue
-			if domain_link != self.target_domain:
+			if tld_result.domain != self.target_domain:
 				continue
-			if parsed_link.path in ["", "/"]:
+			if parsed_link.path in ["", "/"] and tld_result.subdomain == self.target_subdomain:
 				continue
 			if "javascript" in link:
 				continue
@@ -347,8 +355,8 @@ class Crawler:
 
 	@staticmethod
 	def is_image(path):
-		 mt,me = mimetypes.guess_type(path)
-		 return mt is not None and mt.startswith("image/")
+		mt, me = mimetypes.guess_type(path)
+		return mt is not None and mt.startswith("image/")
 
 	def exclude_link(self,link):
 		if link not in self.excluded:
